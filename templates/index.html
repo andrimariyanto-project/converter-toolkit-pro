@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Converter Toolkit Pro</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --card2: #16213a; --accent: #38bdf8;
+    --yellow: #facc15; --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+    --green: #22c55e; --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; background: var(--bg); color: var(--text); }
+  h1 { color: var(--accent); margin-bottom: 4px; font-size: 1.8em; }
+  .subtitle { color: var(--muted); margin-top: 0; margin-bottom: 24px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); padding: 10px 0; z-index: 10; }
+  .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: all .15s; }
+  .tab-btn:hover { border-color: var(--accent); }
+  .tab-btn.active { background: var(--accent); color: #0f172a; font-weight: bold; border-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .tool-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .tool-card h3 { margin: 0 0 4px; color: var(--yellow); font-size: 1.05em; }
+  .tool-card p.desc { color: var(--muted); font-size: 0.85em; margin: 0 0 12px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 0.8em; color: var(--muted); margin-bottom: 4px; }
+  .field input[type=text], .field input[type=number], .field input[type=password], .field textarea, .field select {
+    width: 100%; padding: 8px 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.9em;
+  }
+  .field textarea { resize: vertical; min-height: 60px; font-family: monospace; }
+  .field input[type=file] { width: 100%; font-size: 0.85em; color: var(--muted); }
+  .field input[type=checkbox] { margin-right: 6px; }
+  .run-btn { background: var(--accent); color: #0f172a; border: none; padding: 9px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9em; }
+  .run-btn:hover { opacity: 0.85; }
+  .run-btn:disabled { opacity: 0.5; cursor: wait; }
+  .result { margin-top: 12px; }
+  .result pre { background: #0b1220; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 0.8em; overflow-x: auto; max-height: 220px; white-space: pre-wrap; word-break: break-all; }
+  .result .ok-badge { color: var(--green); font-size: 0.8em; }
+  .result .err-badge { color: var(--red); font-size: 0.8em; }
+  .result a.download { display: inline-block; background: var(--green); color: #0b1220; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 0.85em; }
+  .note { color: var(--muted); font-size: 0.85em; }
+  .raw-list .card { background: var(--card); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
+  .raw-list .card h2 { margin-top: 0; color: var(--yellow); font-size: 1.1em; text-transform: capitalize; }
+  .raw-route { display: flex; gap: 10px; align-items: center; font-family: monospace; padding: 4px 0; border-top: 1px solid var(--border); font-size: 0.85em; }
+  .raw-route:first-of-type { border-top: none; }
+  .method { padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; }
+  .GET { background: #166534; } .POST { background: #1d4ed8; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <h1>🧰 Converter Toolkit Pro</h1>
+  <p class="subtitle">Semua tools berjalan 100% lokal di komputer kamu. Pilih kategori sesuai peran kamu, isi form, klik Jalankan.</p>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="engineer">🔧 Engineer &amp; Programmer</button>
+    <button class="tab-btn" data-tab="analyst">📊 Data Analyst</button>
+    <button class="tab-btn" data-tab="dba">🗄️ Database Expert</button>
+    <button class="tab-btn" data-tab="network">🌐 Network Integration</button>
+    <button class="tab-btn" data-tab="docs">📄 Dokumen &amp; File</button>
+    <button class="tab-btn" data-tab="raw">📋 Semua Endpoint (Lengkap)</button>
+  </div>
+
+  <div id="panels"></div>
+
+  <script>
+  // =====================================================================
+  // KONFIGURASI TOOLS PER PERAN
+  // =====================================================================
+  const TOOLS = {
+    engineer: [
+      { id:"json-format", title:"JSON Formatter", desc:"Rapikan / pretty-print JSON.", method:"json",
+        endpoint:"/api/text/json-format",
+        fields:[{name:"text", label:"JSON mentah", type:"textarea", placeholder:'{"a":1,"b":[1,2]}'}] },
+      { id:"base64-encode", title:"Base64 Encode", desc:"Teks -> Base64.", method:"json",
+        endpoint:"/api/text/base64-encode",
+        fields:[{name:"text", label:"Teks", type:"textarea"}] },
+      { id:"base64-decode", title:"Base64 Decode", desc:"Base64 -> Teks asli.", method:"json",
+        endpoint:"/api/text/base64-decode",
+        fields:[{name:"text", label:"Base64", type:"textarea"}] },
+      { id:"hash", title:"Hash Generator", desc:"MD5 / SHA1 / SHA256 / SHA512.", method:"json",
+        endpoint:"/api/text/hash",
+        fields:[{name:"text", label:"Teks", type:"textarea"},
+                {name:"algo", label:"Algoritma", type:"select", options:["sha256","md5","sha1","sha512"]}] },
+      { id:"uuid", title:"UUID Generator", desc:"Generate UUID v4.", method:"get",
+        endpoint:"/api/text/uuid",
+        fields:[{name:"count", label:"Jumlah", type:"number", value:3}] },
+      { id:"jwt-decode", title:"JWT Decode", desc:"Lihat isi JWT tanpa verifikasi signature.", method:"json",
+        endpoint:"/api/text/jwt-decode",
+        fields:[{name:"token", label:"Token JWT", type:"textarea"}] },
+      { id:"regex-test", title:"Regex Tester", desc:"Test pattern regex terhadap teks.", method:"json",
+        endpoint:"/api/text/regex-test",
+        fields:[{name:"pattern", label:"Pattern", type:"text", placeholder:"\\d+"},
+                {name:"text", label:"Teks", type:"textarea"},
+                {name:"flags", label:"Flags (i/m/s, opsional)", type:"text"}] },
+      { id:"password-gen", title:"Password Generator", desc:"Generate password acak & aman.", method:"get",
+        endpoint:"/api/security/password-generate",
+        fields:[{name:"length", label:"Panjang", type:"number", value:16},
+                {name:"count", label:"Jumlah", type:"number", value:1}] },
+      { id:"file-checksum", title:"Checksum File", desc:"Hitung MD5/SHA1/SHA256/SHA512 sebuah file.", method:"form",
+        endpoint:"/api/security/file-checksum",
+        fields:[{name:"file", label:"Pilih file", type:"file"}] },
+      { id:"text-compress", title:"Kompres Teks", desc:"Kompres teks -> base64 (hemat payload API/network).", method:"json",
+        endpoint:"/api/compress/text-compress",
+        fields:[{name:"text", label:"Teks", type:"textarea"},
+                {name:"algo", label:"Algoritma", type:"select", options:["gzip","bzip2","lzma"]}] },
+    ],
+
+    analyst: [
+      { id:"sheet-summary", title:"Ringkasan Statistik", desc:"Upload CSV/Excel -> statistik dasar otomatis.", method:"form",
+        endpoint:"/api/sheet/summary",
+        fields:[{name:"file", label:"File CSV/Excel", type:"file"}] },
+      { id:"sql-query", title:"Jalankan SQL ke CSV/Excel", desc:"Query SELECT langsung ke file (via SQLite in-memory).", method:"form",
+        endpoint:"/api/sheet/sql-query",
+        fields:[{name:"file", label:"File CSV/Excel", type:"file"},
+                {name:"table_name", label:"Nama tabel", type:"text", value:"t"},
+                {name:"query", label:"Query SQL (SELECT saja)", type:"textarea", placeholder:"SELECT * FROM t LIMIT 10"}] },
+      { id:"csv-to-excel", title:"CSV -> Excel", desc:"Convert file CSV jadi .xlsx.", method:"form",
+        endpoint:"/api/sheet/csv-to-excel",
+        fields:[{name:"file", label:"File CSV", type:"file"}] },
+      { id:"excel-to-json", title:"Excel -> JSON", desc:"Convert sheet Excel jadi JSON.", method:"form",
+        endpoint:"/api/sheet/excel-to-json",
+        fields:[{name:"file", label:"File Excel", type:"file"},
+                {name:"sheet_name", label:"Nama/nomor sheet (opsional)", type:"text", value:"0"}] },
+      { id:"clean-data", title:"Bersihkan Data", desc:"Hapus duplikat / baris kosong / spasi berlebih.", method:"form",
+        endpoint:"/api/sheet/clean",
+        fields:[{name:"file", label:"File CSV/Excel", type:"file"},
+                {name:"drop_duplicates", label:"Hapus duplikat?", type:"select", options:["true","false"]},
+                {name:"drop_na", label:"Hapus baris kosong?", type:"select", options:["false","true"]}] },
+      { id:"csv-to-parquet", title:"CSV -> Parquet", desc:"Kompresi kolumnar untuk data besar (butuh pyarrow).", method:"form",
+        endpoint:"/api/compress/csv-to-parquet",
+        fields:[{name:"file", label:"File CSV", type:"file"},
+                {name:"compression", label:"Kompresi", type:"select", options:["snappy","gzip","brotli"]}] },
+    ],
+
+    dba: [
+      { id:"to-sql-insert", title:"CSV/Excel -> SQL INSERT", desc:"Generate statement INSERT siap pakai.", method:"form",
+        endpoint:"/api/sheet/to-sql-insert",
+        fields:[{name:"file", label:"File CSV/Excel", type:"file"},
+                {name:"table_name", label:"Nama tabel tujuan", type:"text", value:"my_table"}] },
+      { id:"sql-query-dba", title:"Jalankan SQL ke CSV/Excel", desc:"Query SELECT read-only ke file.", method:"form",
+        endpoint:"/api/sheet/sql-query",
+        fields:[{name:"file", label:"File CSV/Excel", type:"file"},
+                {name:"table_name", label:"Nama tabel", type:"text", value:"t"},
+                {name:"query", label:"Query SQL (SELECT saja)", type:"textarea", placeholder:"SELECT * FROM t LIMIT 10"}] },
+      { id:"merge-sheets", title:"Gabungkan CSV/Excel", desc:"Merge beberapa file (kolom sama) jadi 1.", method:"form",
+        endpoint:"/api/sheet/merge",
+        fields:[{name:"files", label:"Pilih beberapa file", type:"files"}] },
+      { id:"clean-data-dba", title:"Bersihkan Data", desc:"Hapus duplikat/baris kosong sebelum di-load ke DB.", method:"form",
+        endpoint:"/api/sheet/clean",
+        fields:[{name:"file", label:"File CSV/Excel", type:"file"},
+                {name:"drop_duplicates", label:"Hapus duplikat?", type:"select", options:["true","false"]},
+                {name:"drop_na", label:"Hapus baris kosong?", type:"select", options:["false","true"]}] },
+      { id:"file-checksum-dba", title:"Checksum File", desc:"Verifikasi integritas file backup/dump.", method:"form",
+        endpoint:"/api/security/file-checksum",
+        fields:[{name:"file", label:"Pilih file", type:"file"}] },
+    ],
+
+    network: [
+      { id:"subnet", title:"Subnet / CIDR Calculator", desc:"Hitung network, broadcast, host range, dsb.", method:"json",
+        endpoint:"/api/calc/subnet",
+        fields:[{name:"cidr", label:"CIDR", type:"text", placeholder:"192.168.1.0/24"}] },
+      { id:"subnet-split", title:"Pecah Subnet", desc:"Pecah network jadi beberapa subnet lebih kecil.", method:"json",
+        endpoint:"/api/calc/subnet-split",
+        fields:[{name:"cidr", label:"CIDR asal", type:"text", placeholder:"10.0.0.0/24"},
+                {name:"new_prefix", label:"Prefix baru", type:"number", value:26}] },
+      { id:"ip-in-network", title:"Cek IP dalam Network", desc:"Apakah sebuah IP masuk network tertentu?", method:"json",
+        endpoint:"/api/calc/ip-in-network",
+        fields:[{name:"ip", label:"IP Address", type:"text", placeholder:"192.168.1.50"},
+                {name:"cidr", label:"CIDR", type:"text", placeholder:"192.168.1.0/24"}] },
+      { id:"base-convert", title:"Konversi Basis Angka", desc:"Desimal / Biner / Oktal / Heksadesimal.", method:"json",
+        endpoint:"/api/calc/base-convert",
+        fields:[{name:"value", label:"Nilai", type:"text", placeholder:"255"},
+                {name:"from_base", label:"Basis asal", type:"select", options:["10","2","8","16"]},
+                {name:"to_base", label:"Basis tujuan", type:"select", options:["16","2","8","10"]}] },
+      { id:"unit-convert", title:"Konversi Satuan Data", desc:"Byte/KB/MB/GB/TB, panjang, berat, suhu.", method:"json",
+        endpoint:"/api/calc/unit-convert",
+        fields:[{name:"value", label:"Nilai", type:"number", value:1},
+                {name:"category", label:"Kategori", type:"select", options:["data","length","weight","temperature"]},
+                {name:"from_unit", label:"Dari satuan", type:"text", placeholder:"mb"},
+                {name:"to_unit", label:"Ke satuan", type:"text", placeholder:"gb"}] },
+      { id:"qr-wifi", title:"QR Code Wi-Fi", desc:"Generate QR untuk konek Wi-Fi otomatis (scan HP).", method:"json",
+        endpoint:"/api/qr/generate-wifi",
+        fields:[{name:"ssid", label:"Nama Wi-Fi (SSID)", type:"text"},
+                {name:"password", label:"Password", type:"password"},
+                {name:"encryption", label:"Enkripsi", type:"select", options:["WPA","WEP","nopass"]}] },
+    ],
+
+    docs: [
+      // --- PDF: dasar ---
+      { id:"pdf-merge", title:"Gabungkan PDF", desc:"Merge beberapa PDF jadi 1.", method:"form",
+        endpoint:"/api/pdf/merge",
+        fields:[{name:"files", label:"Pilih beberapa PDF", type:"files"}] },
+      { id:"pdf-split", title:"Pecah PDF", desc:"Pecah per halaman, atau isi rentang misal '1-3,5-5'.", method:"form",
+        endpoint:"/api/pdf/split",
+        fields:[{name:"file", label:"File PDF", type:"file"},
+                {name:"ranges", label:"Rentang halaman (opsional)", type:"text", placeholder:"1-3,4-5"}] },
+      { id:"pdf-rotate", title:"Rotasi PDF", desc:"Putar semua/halaman tertentu. Kosongkan 'halaman' untuk semua.", method:"form",
+        endpoint:"/api/pdf/rotate",
+        fields:[{name:"file", label:"File PDF", type:"file"},
+                {name:"degrees", label:"Derajat", type:"select", options:["90","180","270"]},
+                {name:"pages", label:"Halaman tertentu (opsional)", type:"text", placeholder:"1,3"}] },
+      { id:"pdf-watermark", title:"Watermark PDF", desc:"Tambah watermark teks diagonal.", method:"form",
+        endpoint:"/api/pdf/watermark",
+        fields:[{name:"file", label:"File PDF", type:"file"},
+                {name:"text", label:"Teks watermark", type:"text", value:"CONFIDENTIAL"}] },
+      { id:"pdf-compress", title:"Kompres PDF", desc:"Perkecil ukuran file PDF.", method:"form",
+        endpoint:"/api/pdf/compress",
+        fields:[{name:"file", label:"File PDF", type:"file"}] },
+      // --- PDF: keamanan & info ---
+      { id:"pdf-encrypt", title:"Kunci PDF (Password)", desc:"Tambahkan password ke PDF.", method:"form",
+        endpoint:"/api/pdf/encrypt",
+        fields:[{name:"file", label:"File PDF", type:"file"},
+                {name:"password", label:"Password baru", type:"password"}] },
+      { id:"pdf-decrypt", title:"Buka Kunci PDF", desc:"Hapus password dari PDF.", method:"form",
+        endpoint:"/api/pdf/decrypt",
+        fields:[{name:"file", label:"File PDF", type:"file"},
+                {name:"password", label:"Password saat ini", type:"password"}] },
+      { id:"pdf-metadata", title:"Info / Metadata PDF", desc:"Jumlah halaman, penulis, ukuran, dsb.", method:"form",
+        endpoint:"/api/pdf/metadata",
+        fields:[{name:"file", label:"File PDF", type:"file"}] },
+      { id:"pdf-extract-text", title:"Ekstrak Teks PDF", desc:"Ambil teks per halaman jadi JSON.", method:"form",
+        endpoint:"/api/pdf/extract-text",
+        fields:[{name:"file", label:"File PDF", type:"file"}] },
+      { id:"pdf-extract-images", title:"Ekstrak Gambar dari PDF", desc:"Ambil semua gambar yang menempel di PDF (.zip).", method:"form",
+        endpoint:"/api/pdf/extract-images",
+        fields:[{name:"file", label:"File PDF", type:"file"}] },
+      { id:"pdf-ocr", title:"OCR PDF Hasil Scan", desc:"Ubah PDF scan/gambar jadi teks yang bisa dicopy.", method:"form",
+        endpoint:"/api/pdf/ocr",
+        fields:[{name:"file", label:"File PDF (hasil scan)", type:"file"},
+                {name:"lang", label:"Bahasa OCR", type:"select", options:["ind+eng","eng","ind"]},
+                {name:"dpi", label:"DPI", type:"number", value:300}] },
+      // --- Convert lintas format ---
+      { id:"pdf-to-docx", title:"PDF -> Word", desc:"Convert PDF jadi .docx (termasuk tabel).", method:"form",
+        endpoint:"/api/convert/pdf-to-docx",
+        fields:[{name:"file", label:"File PDF", type:"file"}] },
+      { id:"pdf-to-txt", title:"PDF -> Teks Polos", desc:"Ekstrak semua teks jadi file .txt.", method:"form",
+        endpoint:"/api/convert/pdf-to-txt",
+        fields:[{name:"file", label:"File PDF", type:"file"}] },
+      { id:"pdf-to-images", title:"PDF -> Gambar", desc:"Setiap halaman jadi JPG/PNG (dalam .zip).", method:"form",
+        endpoint:"/api/convert/pdf-to-images",
+        fields:[{name:"file", label:"File PDF", type:"file"},
+                {name:"format", label:"Format", type:"select", options:["jpg","png"]},
+                {name:"dpi", label:"DPI", type:"number", value:200}] },
+      { id:"images-to-pdf", title:"Gambar -> PDF", desc:"Gabungkan beberapa gambar jadi 1 PDF.", method:"form",
+        endpoint:"/api/convert/images-to-pdf",
+        fields:[{name:"files", label:"Pilih beberapa gambar (urut)", type:"files"}] },
+      { id:"markdown-to-html", title:"Markdown -> HTML", desc:"Convert teks Markdown jadi HTML.", method:"json",
+        endpoint:"/api/convert/markdown-to-html",
+        fields:[{name:"markdown_text", label:"Teks Markdown", type:"textarea", placeholder:"# Judul\n\n- satu\n- dua"}] },
+      { id:"yaml-to-json", title:"YAML -> JSON", desc:"Convert teks YAML jadi JSON.", method:"json",
+        endpoint:"/api/convert/yaml-to-json",
+        fields:[{name:"yaml_text", label:"Teks YAML", type:"textarea", placeholder:"name: budi\nage: 30"}] },
+      { id:"json-to-yaml", title:"JSON -> YAML", desc:"Convert teks JSON jadi YAML.", method:"json",
+        endpoint:"/api/convert/json-to-yaml",
+        fields:[{name:"json_text", label:"Teks JSON", type:"textarea", placeholder:'{"name":"budi","age":30}'}] },
+      { id:"csv-to-json-doc", title:"CSV -> JSON", desc:"Convert file CSV jadi JSON.", method:"form",
+        endpoint:"/api/convert/csv-to-json",
+        fields:[{name:"file", label:"File CSV", type:"file"}] },
+      { id:"json-to-csv-doc", title:"JSON -> CSV", desc:"Upload file .json (array of objects) jadi CSV.", method:"form",
+        endpoint:"/api/convert/json-to-csv",
+        fields:[{name:"file", label:"File .json", type:"file"}] },
+      // --- Gambar ---
+      { id:"image-convert", title:"Convert Format Gambar", desc:"jpg/png/webp/bmp/tiff.", method:"form",
+        endpoint:"/api/image/convert",
+        fields:[{name:"file", label:"File gambar", type:"file"},
+                {name:"format", label:"Format tujuan", type:"select", options:["png","jpg","webp","bmp","tiff"]}] },
+      { id:"image-resize", title:"Resize Gambar", desc:"Ubah ukuran berdasarkan lebar maksimal.", method:"form",
+        endpoint:"/api/image/resize",
+        fields:[{name:"file", label:"File gambar", type:"file"},
+                {name:"width", label:"Lebar maksimal (px)", type:"number", value:800}] },
+      { id:"image-compress", title:"Kompres Gambar", desc:"Perkecil ukuran file (JPEG quality 1-95).", method:"form",
+        endpoint:"/api/image/compress",
+        fields:[{name:"file", label:"File gambar", type:"file"},
+                {name:"quality", label:"Kualitas (1-95)", type:"number", value:70}] },
+      { id:"image-crop", title:"Crop Gambar", desc:"Potong gambar sesuai koordinat & ukuran.", method:"form",
+        endpoint:"/api/image/crop",
+        fields:[{name:"file", label:"File gambar", type:"file"},
+                {name:"x", label:"Posisi X", type:"number", value:0},
+                {name:"y", label:"Posisi Y", type:"number", value:0},
+                {name:"width", label:"Lebar potongan", type:"number", value:200},
+                {name:"height", label:"Tinggi potongan", type:"number", value:200}] },
+      { id:"image-rotate", title:"Rotasi Gambar", desc:"Putar gambar sesuai derajat.", method:"form",
+        endpoint:"/api/image/rotate",
+        fields:[{name:"file", label:"File gambar", type:"file"},
+                {name:"degrees", label:"Derajat", type:"select", options:["90","180","270"]}] },
+      { id:"image-watermark", title:"Watermark Gambar", desc:"Tambah teks watermark di tengah gambar.", method:"form",
+        endpoint:"/api/image/watermark",
+        fields:[{name:"file", label:"File gambar", type:"file"},
+                {name:"text", label:"Teks watermark", type:"text", value:"WATERMARK"}] },
+      { id:"image-grayscale", title:"Gambar Hitam-Putih", desc:"Convert ke grayscale.", method:"form",
+        endpoint:"/api/image/grayscale",
+        fields:[{name:"file", label:"File gambar", type:"file"}] },
+      { id:"image-exif", title:"Baca Metadata EXIF", desc:"Lihat info kamera/lokasi/tanggal foto (kalau ada).", method:"form",
+        endpoint:"/api/image/exif",
+        fields:[{name:"file", label:"File gambar", type:"file"}] },
+      { id:"image-strip-exif", title:"Hapus Metadata EXIF", desc:"Bersihkan data privasi (lokasi, kamera) dari foto.", method:"form",
+        endpoint:"/api/image/strip-exif",
+        fields:[{name:"file", label:"File gambar", type:"file"}] },
+      { id:"image-to-base64", title:"Gambar -> Base64", desc:"Convert gambar jadi teks base64 / data URI.", method:"form",
+        endpoint:"/api/image/to-base64",
+        fields:[{name:"file", label:"File gambar", type:"file"}] },
+      { id:"image-from-base64", title:"Base64 -> Gambar", desc:"Tempel base64, hasilkan file gambar.", method:"json",
+        endpoint:"/api/image/from-base64",
+        fields:[{name:"base64", label:"Base64 (boleh data:...;base64,...)", type:"textarea"},
+                {name:"format", label:"Format output", type:"select", options:["png","jpg","webp"]}] },
+      // --- Arsip & Kompresi ---
+      { id:"zip-files", title:"Kompres jadi ZIP", desc:"Gabungkan & kompres beberapa file jadi .zip.", method:"form",
+        endpoint:"/api/compress/zip",
+        fields:[{name:"files", label:"Pilih beberapa file", type:"files"}] },
+      { id:"zip-info", title:"Lihat Isi ZIP", desc:"Cek daftar file dalam .zip tanpa mengekstrak.", method:"form",
+        endpoint:"/api/compress/zip-info",
+        fields:[{name:"file", label:"File .zip", type:"file"}] },
+      { id:"unzip", title:"Ekstrak ZIP", desc:"Ekstrak isi .zip (support password).", method:"form",
+        endpoint:"/api/compress/unzip",
+        fields:[{name:"file", label:"File .zip", type:"file"},
+                {name:"password", label:"Password (opsional)", type:"password"}] },
+      { id:"tar-gz", title:"Kompres jadi TAR.GZ", desc:"Arsip gaya Linux/server.", method:"form",
+        endpoint:"/api/compress/tar-gz",
+        fields:[{name:"files", label:"Pilih beberapa file", type:"files"}] },
+      { id:"untar", title:"Ekstrak TAR.GZ", desc:"Ekstrak arsip .tar.gz / .tar.", method:"form",
+        endpoint:"/api/compress/untar",
+        fields:[{name:"file", label:"File .tar.gz", type:"file"}] },
+      { id:"file-compress", title:"Kompres 1 File", desc:"gzip / bzip2 / lzma.", method:"form",
+        endpoint:"/api/compress/file-compress",
+        fields:[{name:"file", label:"Pilih file", type:"file"},
+                {name:"algo", label:"Algoritma", type:"select", options:["gzip","bzip2","lzma"]}] },
+      { id:"file-decompress", title:"Dekompres 1 File", desc:"Kembalikan file .gz/.bz2/.xz ke bentuk asli.", method:"form",
+        endpoint:"/api/compress/file-decompress",
+        fields:[{name:"file", label:"File terkompresi", type:"file"},
+                {name:"algo", label:"Algoritma", type:"select", options:["gzip","bzip2","lzma"]}] },
+      { id:"compress-compare", title:"Bandingkan Algoritma Kompresi", desc:"Cek gzip vs bzip2 vs lzma vs zip, mana paling kecil.", method:"form",
+        endpoint:"/api/compress/compare",
+        fields:[{name:"file", label:"Pilih file", type:"file"}] },
+      // --- QR & Barcode ---
+      { id:"qr-generate", title:"Generate QR Code", desc:"Buat QR code dari teks/link apapun.", method:"json",
+        endpoint:"/api/qr/generate",
+        fields:[{name:"text", label:"Teks / URL", type:"text", placeholder:"https://example.com"},
+                {name:"error_correction", label:"Error correction", type:"select", options:["M","L","Q","H"]}] },
+      { id:"qr-decode", title:"Scan / Decode QR Code", desc:"Upload gambar QR, baca isinya.", method:"form",
+        endpoint:"/api/qr/decode",
+        fields:[{name:"file", label:"File gambar QR", type:"file"}] },
+      { id:"barcode-generate", title:"Generate Barcode", desc:"Buat barcode Code128/EAN13/dsb.", method:"json",
+        endpoint:"/api/barcode/generate",
+        fields:[{name:"text", label:"Teks/angka", type:"text"},
+                {name:"type", label:"Tipe barcode", type:"select", options:["code128","ean13","ean8","code39"]}] },
+    ],
+  };
+
+  // =====================================================================
+  // RENDER FORM FIELD
+  // =====================================================================
+  function renderField(f) {
+    const id = "f_" + Math.random().toString(36).slice(2, 9);
+    let inner = "";
+    if (f.type === "textarea") {
+      inner = `<textarea name="${f.name}" id="${id}" placeholder="${f.placeholder||''}">${f.value||''}</textarea>`;
+    } else if (f.type === "select") {
+      inner = `<select name="${f.name}" id="${id}">` + f.options.map(o=>`<option value="${o}">${o}</option>`).join('') + `</select>`;
+    } else if (f.type === "file") {
+      inner = `<input type="file" name="${f.name}" id="${id}">`;
+    } else if (f.type === "files") {
+      inner = `<input type="file" name="${f.name}" id="${id}" multiple>`;
+    } else if (f.type === "password") {
+      inner = `<input type="password" name="${f.name}" id="${id}" value="${f.value||''}">`;
+    } else if (f.type === "number") {
+      inner = `<input type="number" name="${f.name}" id="${id}" value="${f.value!==undefined?f.value:''}">`;
+    } else {
+      inner = `<input type="text" name="${f.name}" id="${id}" placeholder="${f.placeholder||''}" value="${f.value||''}">`;
+    }
+    return `<div class="field"><label for="${id}">${f.label}</label>${inner}</div>`;
+  }
+
+  function parseFilename(disposition, fallback) {
+    if (!disposition) return fallback;
+    const m = /filename="?([^"]+)"?/.exec(disposition);
+    return m ? m[1] : fallback;
+  }
+
+  async function runTool(tool, cardEl) {
+    const resultEl = cardEl.querySelector(".result");
+    const btn = cardEl.querySelector(".run-btn");
+    btn.disabled = true;
+    btn.textContent = "Memproses...";
+    resultEl.innerHTML = "";
+
+    try {
+      let resp;
+      const getVal = (name) => cardEl.querySelector(`[name="${name}"]`);
+
+      if (tool.method === "get") {
+        const params = new URLSearchParams();
+        tool.fields.forEach(f => params.set(f.name, getVal(f.name).value));
+        resp = await fetch(tool.endpoint + "?" + params.toString());
+      } else if (tool.method === "json") {
+        const body = {};
+        tool.fields.forEach(f => {
+          const el = getVal(f.name);
+          body[f.name] = (f.type === "number") ? Number(el.value) : el.value;
+        });
+        resp = await fetch(tool.endpoint, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+      } else { // form
+        const fd = new FormData();
+        tool.fields.forEach(f => {
+          const el = getVal(f.name);
+          if (f.type === "file") {
+            if (el.files[0]) fd.append(f.name, el.files[0]);
+          } else if (f.type === "files") {
+            for (const file of el.files) fd.append(f.name, file);
+          } else {
+            fd.append(f.name, el.value);
+          }
+        });
+        resp = await fetch(tool.endpoint, { method: "POST", body: fd });
+      }
+
+      const ct = resp.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const data = await resp.json();
+        const badge = data.ok ? `<span class="ok-badge">✓ Berhasil</span>` : `<span class="err-badge">✗ Error</span>`;
+        resultEl.innerHTML = `${badge}<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } else {
+        const blob = await resp.blob();
+        if (!resp.ok) {
+          resultEl.innerHTML = `<span class="err-badge">✗ Error (${resp.status})</span>`;
+        } else {
+          const filename = parseFilename(resp.headers.get("content-disposition"), "hasil.bin");
+          const url = URL.createObjectURL(blob);
+          resultEl.innerHTML = `<span class="ok-badge">✓ Berhasil</span><br><a class="download" href="${url}" download="${filename}">⬇ Download ${filename}</a>`;
+        }
+      }
+    } catch (e) {
+      resultEl.innerHTML = `<span class="err-badge">✗ Gagal: ${e.message}</span>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Jalankan";
+    }
+  }
+
+  function renderPersonaTab(key) {
+    const tools = TOOLS[key];
+    const grid = document.createElement("div");
+    grid.className = "tool-grid";
+    tools.forEach(tool => {
+      const card = document.createElement("div");
+      card.className = "tool-card";
+      card.innerHTML = `
+        <h3>${tool.title}</h3>
+        <p class="desc">${tool.desc}</p>
+        <form onsubmit="return false;">
+          ${tool.fields.map(renderField).join("")}
+          <button type="submit" class="run-btn">Jalankan</button>
+        </form>
+        <div class="result"></div>
+      `;
+      card.querySelector("form").addEventListener("submit", () => runTool(tool, card));
+      grid.appendChild(card);
+    });
+    const panel = document.createElement("div");
+    panel.className = "tab-panel";
+    panel.id = "panel-" + key;
+    panel.appendChild(grid);
+    return panel;
+  }
+
+  function renderRawTab(groups) {
+    const panel = document.createElement("div");
+    panel.className = "tab-panel raw-list";
+    panel.id = "panel-raw";
+    panel.innerHTML = `<p class="note">Daftar teknis semua endpoint API (untuk dipanggil lewat curl/Postman/frontend sendiri).</p>`;
+    Object.entries(groups).forEach(([module, routes]) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<h2>${module.replace(/_/g, ' ')}</h2>` + routes.map(r =>
+        `<div class="raw-route">${r.methods.map(m=>`<span class="method ${m}">${m}</span>`).join('')}<code>${r.path}</code></div>`
+      ).join("");
+      panel.appendChild(card);
+    });
+    return panel;
+  }
+
+  // =====================================================================
+  // INIT
+  // =====================================================================
+  const RAW_GROUPS = {{ groups|tojson }};
+  const panelsRoot = document.getElementById("panels");
+  Object.keys(TOOLS).forEach(key => panelsRoot.appendChild(renderPersonaTab(key)));
+  panelsRoot.appendChild(renderRawTab(RAW_GROUPS));
+  document.getElementById("panel-engineer").classList.add("active");
+
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+  </script>
+</body>
+</html>

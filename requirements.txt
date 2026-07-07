@@ -1,0 +1,29 @@
+# --- Wajib untuk fitur inti (semua sudah teruji jalan) ---
+Flask>=3.0
+pypdf
+pdfplumber
+pillow
+pdf2image
+python-docx
+pytesseract
+pandas
+openpyxl
+img2pdf
+reportlab
+pyjwt
+pyyaml
+markdown
+cryptography
+
+# --- Opsional, untuk fitur QR code / barcode (qr_tools.py) ---
+qrcode[pil]
+pyzbar          # butuh library sistem 'zbar' (lihat README)
+python-barcode
+
+# --- Opsional, untuk fitur CSV<->Parquet (compress_tools.py) ---
+pyarrow         # kompresi kolumnar, biasa dipakai data engineer/data lake
+
+# --- Program sistem yang JUGA dibutuhkan (bukan via pip, lihat README) ---
+# poppler-utils   -> untuk pdf2image (pdftoppm)
+# tesseract-ocr   -> untuk OCR (pytesseract)
+# libzbar0        -> untuk pyzbar (decode QR code)
