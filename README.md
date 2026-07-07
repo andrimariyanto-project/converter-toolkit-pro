@@ -283,3 +283,6 @@ Setiap kategori adalah Flask Blueprint terpisah di `routes/`. Untuk menambah end
 1. Buka file blueprint terkait (misal `routes/pdf_tools.py`).
 2. Tambahkan fungsi baru dengan decorator `@pdf_bp.route("/nama-endpoint", methods=["POST"])`.
 3. Restart `python3 app.py` — endpoint otomatis muncul di homepage `/`.
+
+## Lisensi
+MIT License — bebas dipakai, dimodifikasi, dan didistribusikan ulang (termasuk untuk keperluan komersial), selama menyertakan notice lisensi aslinya. Lihat file [`LICENSE`](./LICENSE) untuk teks lengkap.
